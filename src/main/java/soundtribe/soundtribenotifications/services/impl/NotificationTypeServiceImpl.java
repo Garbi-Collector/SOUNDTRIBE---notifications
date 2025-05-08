@@ -17,12 +17,12 @@ public class NotificationTypeServiceImpl implements NotificationTypeService {
     @Override
     public String MessageByType(NotificationType type) {
         return switch (type) {
-            case DONATION ->  "ha donado para apoyar la aplicación!";
+            case DONATION ->  "ha donado para apoyar a soundtribe!";
             case RECORD -> "ha Roto el Record!";
-            case NEW_ALBUM -> "ha subido un nuevo álbum!";
+            case NEW_ALBUM -> "ha subido un nuevo álbum: ";
             case FOLLOW -> "ha comenzado a seguirte!";
-            case LIKE_SONG -> "¡A alguien le gustó una de tus canciones!";
-            case LIKE_ALBUM -> "¡A alguien le gustó uno de tus álbumes!";
+            case LIKE_SONG -> "le gustó una de tus canciones: ";
+            case LIKE_ALBUM -> "le gustó uno de tus álbumes: ";
             default -> throw new IllegalArgumentException("Tipo de notificación no soportado: " + type);
         };
     }

@@ -1,9 +1,19 @@
 package soundtribe.soundtribenotifications.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 public class Notification {
 
@@ -13,7 +23,8 @@ public class Notification {
 
     private String message;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     private Long sender; // ID del usuario que generó la notificación (de otro microservicio)
 
@@ -25,5 +36,6 @@ public class Notification {
     @Enumerated(EnumType.STRING)
     private NotificationType type;
 
-    private String redirectUrl; // Ej: /perfil/usuario, /album/123
+    @Column(nullable = true)
+    private String redirectUrl;
 }
