@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import soundtribe.soundtribenotifications.dtos.common.NotificationGet;
+import soundtribe.soundtribenotifications.dtos.NotificationPost;
+import soundtribe.soundtribenotifications.dtos.NotificationGet;
 import soundtribe.soundtribenotifications.entities.Notification;
 import soundtribe.soundtribenotifications.entities.NotificationType;
 import soundtribe.soundtribenotifications.externalAPI.ExternalJWTService;
@@ -14,6 +15,8 @@ import soundtribe.soundtribenotifications.services.NotificationTypeService;
 
 import java.util.List;
 import java.util.Map;
+
+import static soundtribe.soundtribenotifications.entities.NotificationType.*;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
@@ -32,12 +35,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void crearNotificacion(
             String token,
-            List<Long> receivers,
-            NotificationType type,
-            String slugSong,
-            String nameSong,
-            String slugAlbum,
-            String nameAlbum
+            NotificationPost notiDto
     ){
         Map<String, Object> userInfo = jwtService.validateToken(token);
         Boolean isUSer = (Boolean) userInfo.get("valid");
@@ -48,19 +46,19 @@ public class NotificationServiceImpl implements NotificationService {
             throw new RuntimeException("No eres un usuario");
         }
 
-        Notification noti = switch (type) {
-            case DONATION ->  donationNotification(username, receivers,url,userId);
-            case RECORD -> recordNotification(username, receivers, url, userId);
-            case NEW_ALBUM -> newAlbumNotification(username, receivers, userId, slugAlbum, nameAlbum);
-            case FOLLOW -> followNotification(username, receivers, userId, url);
-            case LIKE_SONG -> likeSongNotification(username, receivers, userId, url, nameSong);
-            case LIKE_ALBUM -> likeAlbumNotification(username, receivers, userId, slugAlbum, nameAlbum);
+        Notification noti = switch (notiDto.getType()) {
+            case DONATION ->  donationNotification(username, notiDto.getReceivers(),url,userId);
+            case RECORD -> recordNotification(username, notiDto.getReceivers(), url, userId);
+            case NEW_ALBUM -> newAlbumNotification(username, notiDto.getReceivers(), userId, notiDto.getSlugAlbum(), notiDto.getNameAlbum());
+            case FOLLOW -> followNotification(username, notiDto.getReceivers(), userId, url);
+            case LIKE_SONG -> likeSongNotification(username, notiDto.getReceivers(), userId, url, notiDto.getNameSong());
+            case LIKE_ALBUM -> likeAlbumNotification(username, notiDto.getReceivers(), userId, notiDto.getSlugAlbum(), notiDto.getNameAlbum());
         };
 
         repository.save(noti);
     }
 
-    @Async
+
     @Override
     public List<NotificationGet> GetNotification(String jwt){
         Map<String, Object> userInfo = jwtService.validateToken(jwt);
@@ -68,7 +66,9 @@ public class NotificationServiceImpl implements NotificationService {
         if (!Boolean.TRUE.equals(isUSer)) {
             throw new RuntimeException("No eres un usuario");
         }
-        Long userId = (Long) userInfo.get("userId");
+        Integer userIdInteger = (Integer) userInfo.get("userId");
+
+        Long userId = userIdInteger.longValue();
 
         List<Notification> notifications = repository.findAllByReceiverId(userId);
         return mapListNotifications(notifications,userId);
@@ -88,6 +88,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .receiver(receiverId)
                 .message(noti.getMessage())
                 .slug(noti.getRedirectUrl())
+                .type(noti.getType())
                 .build();
     }
 
@@ -95,10 +96,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     private Notification likeAlbumNotification(String liker, List<Long> receivers, Long likerId, String likerUrl, String nameAlbum) {
         return Notification.builder()
-                .message("a "+ liker +" "+ typeService.MessageByType(NotificationType.LIKE_ALBUM)+ nameAlbum)
+                .message("a "+ liker +" "+ typeService.MessageByType(LIKE_ALBUM)+ nameAlbum)
                 .sender(likerId)
                 .receivers(receivers)
-                .type(NotificationType.LIKE_ALBUM)
+                .type(LIKE_ALBUM)
                 .redirectUrl(likerUrl)
                 .build();
     }
@@ -136,20 +137,20 @@ public class NotificationServiceImpl implements NotificationService {
 
     private Notification recordNotification(String who, List<Long> receivers, String url, Long userId) {
         return Notification.builder()
-                .message(who +" "+ typeService.MessageByType(NotificationType.RECORD))
+                .message(who +" "+ typeService.MessageByType(RECORD))
                 .sender(userId)
                 .receivers(receivers)
-                .type(NotificationType.RECORD)
+                .type(RECORD)
                 .redirectUrl(url)
                 .build();
     }
 
     private Notification donationNotification(String who, List<Long> receivers, String url, Long userId) {
         return Notification.builder()
-                .message(who +" "+ typeService.MessageByType(NotificationType.DONATION))
+                .message(who +" "+ typeService.MessageByType(DONATION))
                 .sender(userId)
                 .receivers(receivers)
-                .type(NotificationType.DONATION)
+                .type(DONATION)
                 .redirectUrl(url)
                 .build();
     }

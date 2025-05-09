@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 import soundtribe.soundtribenotifications.entities.NotificationType;
 import soundtribe.soundtribenotifications.services.NotificationTypeService;
 
-@Service
+@Service("notificationTypeService")
 public class NotificationTypeServiceImpl implements NotificationTypeService {
 
     /**

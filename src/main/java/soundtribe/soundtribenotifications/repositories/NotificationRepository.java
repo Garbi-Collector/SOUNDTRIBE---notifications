@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    @Query("SELECT n FROM Notification n JOIN n.receivers r WHERE r = :receiverId")
+    @Query("SELECT n FROM Notification n JOIN n.receivers r WHERE r = :receiverId ORDER BY n.createdAt DESC")
     List<Notification> findAllByReceiverId(Long receiverId);
 }

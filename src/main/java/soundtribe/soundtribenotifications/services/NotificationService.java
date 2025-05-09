@@ -2,7 +2,9 @@ package soundtribe.soundtribenotifications.services;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import soundtribe.soundtribenotifications.dtos.common.NotificationGet;
+import soundtribe.soundtribenotifications.dtos.NotificationGet;
+import soundtribe.soundtribenotifications.dtos.NotificationPost;
+import soundtribe.soundtribenotifications.dtos.NotificationGet;
 import soundtribe.soundtribenotifications.entities.NotificationType;
 
 import java.util.List;
@@ -10,16 +12,11 @@ import java.util.List;
 @Service
 public interface NotificationService {
 
+    @Async
     void crearNotificacion(
             String token,
-            List<Long> receivers,
-            NotificationType type,
-            String slugSong,
-            String nameSong,
-            String slugAlbum,
-            String nameAlbum
+            NotificationPost notiDto
     );
 
-    @Async
     List<NotificationGet> GetNotification(String jwt);
 }
