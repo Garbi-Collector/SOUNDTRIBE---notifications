@@ -1,9 +1,12 @@
 package soundtribe.soundtribenotifications.services.impl;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import soundtribe.soundtribenotifications.dtos.NotificationPost;
 import soundtribe.soundtribenotifications.dtos.NotificationGet;
 import soundtribe.soundtribenotifications.entities.Notification;
@@ -15,6 +18,7 @@ import soundtribe.soundtribenotifications.services.NotificationTypeService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static soundtribe.soundtribenotifications.entities.NotificationType.*;
 
@@ -31,6 +35,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Autowired
     ExternalJWTService jwtService;
 
+    @Transactional
     @Async
     @Override
     public void crearNotificacion(
@@ -41,7 +46,11 @@ public class NotificationServiceImpl implements NotificationService {
         Boolean isUSer = (Boolean) userInfo.get("valid");
         String username = (String) userInfo.get("username");
         String url = (String) userInfo.get("slug");
-        Long userId = (Long) userInfo.get("userId");
+
+        Integer userIdInteger = (Integer) userInfo.get("userId");
+
+        Long userId = userIdInteger.longValue();
+
         if (!Boolean.TRUE.equals(isUSer)) {
             throw new RuntimeException("No eres un usuario");
         }
@@ -54,13 +63,27 @@ public class NotificationServiceImpl implements NotificationService {
             case LIKE_SONG -> likeSongNotification(username, notiDto.getReceivers(), userId, url, notiDto.getNameSong());
             case LIKE_ALBUM -> likeAlbumNotification(username, notiDto.getReceivers(), userId, notiDto.getSlugAlbum(), notiDto.getNameAlbum());
         };
+        noti.setIsRead(false);
 
         repository.save(noti);
     }
 
 
+    @Transactional
     @Override
     public List<NotificationGet> GetNotification(String jwt){
+        Long userId = validateJwt(jwt);
+
+        List<Notification> notifications = repository
+                .findAllByReceiverId(
+                userId,
+                PageRequest.of(0, 15)
+        );
+        return mapListNotifications(notifications,userId);
+    }
+
+    @NotNull
+    private Long validateJwt(String jwt) {
         Map<String, Object> userInfo = jwtService.validateToken(jwt);
         Boolean isUSer = (Boolean) userInfo.get("valid");
         if (!Boolean.TRUE.equals(isUSer)) {
@@ -68,11 +91,30 @@ public class NotificationServiceImpl implements NotificationService {
         }
         Integer userIdInteger = (Integer) userInfo.get("userId");
 
-        Long userId = userIdInteger.longValue();
-
-        List<Notification> notifications = repository.findAllByReceiverId(userId);
-        return mapListNotifications(notifications,userId);
+        return userIdInteger.longValue();
     }
+
+
+    @Transactional
+    @Override
+    public void readNotification(String jwt, Long notificationId) {
+        Long userId = validateJwt(jwt); // Validamos el usuario
+
+        Notification noti = repository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notificación no encontrada"));
+
+        // Verificamos que el usuario sea receptor de esta notificación
+        if (!noti.getReceivers().contains(userId)) {
+            throw new RuntimeException("No tienes permiso para leer esta notificación");
+        }
+
+        // Marcamos como leída solo si aún no lo está
+        if (Boolean.FALSE.equals(noti.getIsRead())) {
+            noti.setIsRead(true);
+            repository.save(noti);
+        }
+    }
+
 
 
     private List<NotificationGet> mapListNotifications(List<Notification> notis, Long receiverId) {
@@ -89,6 +131,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .message(noti.getMessage())
                 .slug(noti.getRedirectUrl())
                 .type(noti.getType())
+                .isRead(noti.getIsRead())
                 .build();
     }
 

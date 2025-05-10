@@ -38,4 +38,7 @@ public class Notification {
 
     @Column(nullable = true)
     private String redirectUrl;
+
+    @Column(name = "is_read")
+    private Boolean isRead;
 }

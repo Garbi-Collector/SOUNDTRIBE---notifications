@@ -21,4 +21,6 @@ public class NotificationGet {
     private String slug;
 
     private NotificationType type;
+
+    private Boolean isRead;
 }
