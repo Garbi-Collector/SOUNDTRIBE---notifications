@@ -1,6 +1,7 @@
 package soundtribe.soundtribenotifications.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import soundtribe.soundtribenotifications.dtos.NotificationPost;
@@ -37,6 +38,17 @@ public class NotificationController {
         List<NotificationGet> notis = notificationService.GetNotification(cleanToken(token));
         return ResponseEntity.ok(notis);
     }
+
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<String> markNotificationAsRead(
+            @RequestHeader("Authorization") String token,
+            @PathVariable("id") Long notificationId
+    ) {
+        notificationService.readNotification(cleanToken(token), notificationId);
+        return ResponseEntity.ok("completado");
+    }
+
+
 
     // Utilidad para limpiar el "Bearer "
     private String cleanToken(String token) {

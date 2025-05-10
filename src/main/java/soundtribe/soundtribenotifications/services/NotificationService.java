@@ -19,4 +19,6 @@ public interface NotificationService {
     );
 
     List<NotificationGet> GetNotification(String jwt);
+
+    void readNotification(String jwt, Long notificationId);
 }
