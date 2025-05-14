@@ -9,9 +9,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import soundtribe.soundtribenotifications.dtos.NotificationPost;
 import soundtribe.soundtribenotifications.dtos.NotificationGet;
+import soundtribe.soundtribenotifications.dtos.userExperience.GetAll;
+import soundtribe.soundtribenotifications.dtos.userExperience.UserGet;
 import soundtribe.soundtribenotifications.entities.Notification;
 import soundtribe.soundtribenotifications.entities.NotificationType;
 import soundtribe.soundtribenotifications.externalAPI.ExternalJWTService;
+import soundtribe.soundtribenotifications.externalAPI.UserService;
 import soundtribe.soundtribenotifications.repositories.NotificationRepository;
 import soundtribe.soundtribenotifications.services.NotificationService;
 import soundtribe.soundtribenotifications.services.NotificationTypeService;
@@ -19,6 +22,7 @@ import soundtribe.soundtribenotifications.services.NotificationTypeService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static soundtribe.soundtribenotifications.entities.NotificationType.*;
 
@@ -35,6 +39,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Autowired
     ExternalJWTService jwtService;
 
+    @Autowired
+    UserService userService;
+
     @Transactional
     @Async
     @Override
@@ -49,6 +56,11 @@ public class NotificationServiceImpl implements NotificationService {
 
         Integer userIdInteger = (Integer) userInfo.get("userId");
 
+        GetAll allUsers = userService.getAllUsers(token);
+        List<Long> idsAllUsers = allUsers.getUsuarios().stream()
+                .map(UserGet::getId)
+                .toList();
+
         Long userId = userIdInteger.longValue();
 
         if (!Boolean.TRUE.equals(isUSer)) {
@@ -56,8 +68,8 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         Notification noti = switch (notiDto.getType()) {
-            case DONATION ->  donationNotification(username, notiDto.getReceivers(),url,userId);
-            case RECORD -> recordNotification(username, notiDto.getReceivers(), url, userId);
+            case DONATION ->  donationNotification(idsAllUsers,url,userId, notiDto.getMensaje());
+            case RECORD -> recordNotification(username, idsAllUsers, url, userId);
             case NEW_ALBUM -> newAlbumNotification(username, notiDto.getReceivers(), userId, notiDto.getSlugAlbum(), notiDto.getNameAlbum());
             case FOLLOW -> followNotification(username, notiDto.getReceivers(), userId, url);
             case LIKE_SONG -> likeSongNotification(username, notiDto.getReceivers(), userId, url, notiDto.getNameSong());
@@ -188,9 +200,9 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
     }
 
-    private Notification donationNotification(String who, List<Long> receivers, String url, Long userId) {
+    private Notification donationNotification(List<Long> receivers, String url, Long userId, String mensaje) {
         return Notification.builder()
-                .message(who +" "+ typeService.MessageByType(DONATION))
+                .message(mensaje)
                 .sender(userId)
                 .receivers(receivers)
                 .type(DONATION)
