@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import soundtribe.soundtribenotifications.entities.NotificationType;
 
+import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,4 +25,6 @@ public class NotificationGet {
     private NotificationType type;
 
     private Boolean isRead;
+
+    private LocalDateTime createdAt;
 }

@@ -21,8 +21,6 @@ import soundtribe.soundtribenotifications.services.NotificationTypeService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static soundtribe.soundtribenotifications.entities.NotificationType.*;
 
@@ -128,6 +126,33 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
+    @Transactional
+    @Async
+    @Override
+    public void eliminarNotificaciones(String token){
+        Map<String, Object> userInfo = jwtService.validateToken(token);
+        Boolean isUser = (Boolean) userInfo.get("valid");
+        if (!Boolean.TRUE.equals(isUser)) {
+            throw new RuntimeException("No eres un usuario");
+        }
+
+        Integer userIdInteger = (Integer) userInfo.get("userId");
+        Long userId = userIdInteger.longValue();
+
+        // 1. Eliminar notificaciones donde el usuario es el sender
+        List<Notification> enviadas = repository.findBySender(userId);
+        repository.deleteAll(enviadas);
+
+        // 2. Obtener notificaciones donde el usuario está en la lista de receivers
+        List<Notification> recibidas = repository.findByReceiversContaining(userId);
+
+        for (Notification noti : recibidas) {
+            noti.getReceivers().remove(userId); // removerlo de la lista
+        }
+        repository.saveAll(recibidas); // actualizar los cambios
+    }
+
+
 
     private List<NotificationGet> mapListNotifications(List<Notification> notis, Long receiverId) {
         return notis.stream()
@@ -144,6 +169,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .slug(noti.getRedirectUrl())
                 .type(noti.getType())
                 .isRead(noti.getIsRead())
+                .createdAt(noti.getCreatedAt())
                 .build();
     }
 
